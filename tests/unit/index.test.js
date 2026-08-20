@@ -30,17 +30,17 @@ describe('index.js Component Tests', () => {
 
     it('should keep company uppercase', () => {
       const payload = {
-        source: 'epam.com',
-        company: 'epam systems international srl',
-        cif: '33159615',
+        source: 'lateralgroup.com',
+        company: 'lateral srl',
+        cif: '23067611',
         jobs: [
-          { url: 'https://test.com/1', title: 'Job 1', company: 'epam systems', cif: '33159615' }
+          { url: 'https://test.com/1', title: 'Job 1', company: 'lateral group', cif: '23067611' }
         ]
       };
 
       const result = index.transformJobsForSOLR(payload);
 
-      expect(result.company).toBe('EPAM SYSTEMS INTERNATIONAL SRL');
+      expect(result.company).toBe('LATERAL SRL');
     });
 
     it('should normalize workmode values', () => {
@@ -70,15 +70,15 @@ describe('index.js Component Tests', () => {
   describe('mapToJobModel', () => {
     it('should map raw job to job model format', () => {
       const rawJob = {
-        url: 'https://careers.epam.com/job/123',
+        url: 'https://careers.lateralgroup.com/jobs/123',
         title: 'Senior Developer',
         location: ['Bucharest'],
         tags: ['Java', 'Spring'],
         workmode: 'hybrid'
       };
 
-      const COMPANY_NAME = 'EPAM SYSTEMS INTERNATIONAL SRL';
-      const COMPANY_CIF = '33159615';
+      const COMPANY_NAME = 'LATERAL SRL';
+      const COMPANY_CIF = '23067611';
 
       const result = index.mapToJobModel(rawJob, COMPANY_CIF, COMPANY_NAME);
 
@@ -99,7 +99,7 @@ describe('index.js Component Tests', () => {
         title: 'Job 1'
       };
 
-      const result = index.mapToJobModel(rawJob, '33159615');
+      const result = index.mapToJobModel(rawJob, '23067611');
 
       expect(result.location).toBeUndefined();
       expect(result.tags).toBeUndefined();
@@ -109,112 +109,125 @@ describe('index.js Component Tests', () => {
     it('should handle missing title', () => {
       const rawJob = { url: 'https://test.com/1' };
 
-      const result = index.mapToJobModel(rawJob, '33159615');
+      const result = index.mapToJobModel(rawJob, '23067611');
 
       expect(result.title).toBeUndefined();
       expect(result.url).toBe('https://test.com/1');
     });
   });
 
-  describe('parseApiJobs', () => {
-    it('should parse EPAM API response format', () => {
-      const apiData = {
-        data: {
-          total: 100,
-          jobs: [
-            {
-              uid: '123',
-              name: 'Senior Developer',
-              city: [{ name: 'Bucharest' }],
-              country: [{ name: 'Romania' }],
-              vacancy_type: 'Hybrid',
-              skills: ['Java', 'Spring']
-            }
-          ]
-        }
-      };
+  describe('parseRSSJobs', () => {
+    const rssFixture = (items) => `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>Lateral Group Careers</title>
+${items}
+</channel>
+</rss>`;
 
-      const result = index.parseApiJobs(apiData);
+    it('should parse a Teamtailor-style RSS item with Romanian location', () => {
+      const xml = rssFixture(`
+<item>
+<title>Senior Backend Developer</title>
+<link>https://careers.lateralgroup.com/jobs/senior-backend-developer</link>
+<guid>abc123</guid>
+<department>Engineering</department>
+<remoteStatus>hybrid</remoteStatus>
+<location><city>Bucharest</city><country>Romania</country></location>
+</item>`);
 
-      expect(result.jobs).toHaveLength(1);
-      expect(result.jobs[0].title).toBe('Senior Developer');
-      expect(result.jobs[0].location).toEqual(['Bucharest']);
-      expect(result.jobs[0].workmode).toBe('hybrid');
+      const result = index.parseRSSJobs(xml);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].title).toBe('Senior Backend Developer');
+      expect(result[0].uid).toBe('abc123');
+      expect(result[0].url).toBe('https://careers.lateralgroup.com/jobs/senior-backend-developer');
+      expect(result[0].workmode).toBe('hybrid');
+      expect(result[0].location).toEqual(['Bucharest']);
+      expect(result[0].tags).toEqual(['engineering']);
     });
 
-    it('should handle empty job list', () => {
-      const apiData = { data: { total: 0, jobs: [] } };
+    it('should skip items with no Romanian location', () => {
+      const xml = rssFixture(`
+<item>
+<title>Remote Developer</title>
+<link>https://careers.lateralgroup.com/jobs/remote-dev</link>
+<guid>xyz789</guid>
+<location><city>Warsaw</city><country>Poland</country></location>
+</item>`);
 
-      const result = index.parseApiJobs(apiData);
+      const result = index.parseRSSJobs(xml);
 
-      expect(result.jobs).toEqual([]);
+      expect(result).toHaveLength(0);
     });
 
-    it('should handle missing data field', () => {
-      const result = index.parseApiJobs({});
+    it('should skip items missing title or guid', () => {
+      const xml = rssFixture(`
+<item>
+<link>https://careers.lateralgroup.com/jobs/no-title</link>
+<guid>missing-title</guid>
+<location><city>Bucharest</city><country>Romania</country></location>
+</item>`);
 
-      expect(result.jobs).toEqual([]);
+      const result = index.parseRSSJobs(xml);
+
+      expect(result).toHaveLength(0);
     });
 
-    it('should handle multiple cities', () => {
-      const apiData = {
-        data: {
-          total: 1,
-          jobs: [
-            {
-              uid: '123',
-              name: 'Developer',
-              city: [{ name: 'Bucharest' }, { name: 'Cluj-Napoca' }],
-              country: [{ name: 'Romania' }]
-            }
-          ]
-        }
-      };
+    it('should map remoteStatus to workmode correctly', () => {
+      const xml = rssFixture(`
+<item>
+<title>Fully Remote Role</title>
+<link>https://careers.lateralgroup.com/jobs/remote-role</link>
+<guid>rem001</guid>
+<remoteStatus>fully</remoteStatus>
+<location><city>Cluj-Napoca</city><country>Romania</country></location>
+</item>`);
 
-      const result = index.parseApiJobs(apiData);
+      const result = index.parseRSSJobs(xml);
 
-      expect(result.jobs[0].location).toEqual(['Bucharest', 'Cluj-Napoca']);
-    });
-  });
-
-  describe('URL Generation', () => {
-    it('should use seo.url when available', () => {
-      const apiData = {
-        data: {
-          total: 1,
-          jobs: [
-            {
-              uid: 'blt123',
-              name: 'Test Job',
-              seo: { url: '/en/vacancy/test-job-blt123_en' },
-              city: [{ name: 'Bucharest' }]
-            }
-          ]
-        }
-      };
-
-      const result = index.parseApiJobs(apiData);
-
-      expect(result.jobs[0].url).toBe('https://careers.epam.com/en/vacancy/test-job-blt123_en');
+      expect(result[0].workmode).toBe('remote');
     });
 
-    it('should fallback to uid-based URL when no seo.url', () => {
-      const apiData = {
-        data: {
-          total: 1,
-          jobs: [
-            {
-              uid: 'blt456',
-              name: 'Test Job',
-              city: [{ name: 'Bucharest' }]
-            }
-          ]
-        }
-      };
+    it('should default to on-site when remoteStatus is absent', () => {
+      const xml = rssFixture(`
+<item>
+<title>Office Role</title>
+<link>https://careers.lateralgroup.com/jobs/office-role</link>
+<guid>off001</guid>
+<location><city>București</city><country>Romania</country></location>
+</item>`);
 
-      const result = index.parseApiJobs(apiData);
+      const result = index.parseRSSJobs(xml);
 
-      expect(result.jobs[0].url).toBe('https://careers.epam.com/en/vacancy/blt456_en');
+      expect(result[0].workmode).toBe('on-site');
+    });
+
+    it('should handle empty feed', () => {
+      const xml = rssFixture('');
+
+      const result = index.parseRSSJobs(xml);
+
+      expect(result).toEqual([]);
+    });
+
+    it('should handle malformed XML gracefully', () => {
+      const result = index.parseRSSJobs('not xml at all');
+
+      expect(result).toEqual([]);
+    });
+
+    it('should fall back to a generated URL when link is missing', () => {
+      const xml = rssFixture(`
+<item>
+<title>No Link Job</title>
+<guid>nolink001</guid>
+<location><city>Iași</city><country>Romania</country></location>
+</item>`);
+
+      const result = index.parseRSSJobs(xml);
+
+      expect(result[0].url).toBe('https://careers.lateralgroup.com/jobs/nolink001');
     });
   });
 });

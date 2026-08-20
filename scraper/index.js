@@ -8,11 +8,11 @@ import companyConfig from "./config/company.js";
 import scraperConfig from "./config/scraper.js";
 
 const COMPANY_CIF = companyConfig.id;
-const JOB_BASE = scraperConfig.apiBase;
-const ROMANIA_COUNTRY_ID = scraperConfig.apiCountryId;
+const RSS_URL = scraperConfig.rssUrl;
 
 const TIMEOUT = 10000;
-const PAGE_SIZE = 10;
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 2000;
 
 let COMPANY_NAME = null;
 
@@ -59,117 +59,103 @@ async function searchANOFM(cif) {
   return jobs;
 }
 
-async function fetchJobsPage(pageNum) {
-  const from = (pageNum - 1) * PAGE_SIZE;
-  const url = `${JOB_BASE}/api/jobs/v2/search/careers-i18n?from=${from}&lang=en&size=${PAGE_SIZE}&sortBy=relevance%3Brelocation%3Dasc&websiteLocale=en-us&facets=country%3D${ROMANIA_COUNTRY_ID}`;
-
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent": "job_seeker_ro_spider",
-      "Accept": "application/json"
-    }
-  });
-
-  if (!res.ok) {
-    throw new Error(`API error ${res.status} for page=${pageNum}`);
-  }
-
-  return await res.json();
+function extractTag(xml, tagName) {
+  const match = xml.match(new RegExp(`<${tagName}[^>]*>([\\s\\S]*?)<\/${tagName}>`));
+  return match ? match[1].trim() : '';
 }
 
-function parseApiJobs(apiData) {
-  const jobs = apiData.data?.jobs || [];
-  const total = apiData.data?.total || 0;
+function parseRSSJobs(xmlText) {
+  const jobs = [];
+  const noNsXml = xmlText.replace(/(<\/?)[\w-]+:([\w-]+)/g, '$1$2');
+  const channelMatch = noNsXml.match(/<channel>([\s\S]*?)<\/channel>/);
+  if (!channelMatch) return jobs;
 
-  return {
-    jobs: jobs.map(job => {
-      const vacancyType = job.vacancy_type || "Hybrid";
-      let workmode = "hybrid";
-      if (vacancyType.toLowerCase().includes("remote")) workmode = "remote";
-      else if (vacancyType.toLowerCase().includes("office")) workmode = "on-site";
+  const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+  let itemMatch;
 
-      const location = [];
-      if (job.city && job.city.length > 0) {
-        for (const c of job.city) {
-          if (c.name) location.push(c.name);
-        }
-      } else if (job.country?.[0]?.name) {
-        location.push(job.country[0].name);
-      }
+  while ((itemMatch = itemRegex.exec(channelMatch[1])) !== null) {
+    const item = itemMatch[1];
 
-      const uid = job.uid || "";
-      const seoUrl = job.seo?.url || `/en/vacancy/${uid}_en`;
-      const url = seoUrl.startsWith('http') ? seoUrl : `${JOB_BASE}${seoUrl}`;
+    const title = extractTag(item, 'title');
+    const link = extractTag(item, 'link');
+    const guid = extractTag(item, 'guid');
+    const remoteStatus = extractTag(item, 'remoteStatus');
+    const department = extractTag(item, 'department');
 
-      const tags = (job.skills || []).map(s => s.toLowerCase());
+    if (!title || !guid) continue;
 
-      return {
-        url,
-        title: job.name,
-        uid: job.uid,
-        workmode,
-        location,
-        tags
-      };
-    }),
-    total
-  };
-}
-
-async function scrapeAllListings(testOnlyOnePage = false) {
-  const allJobs = [];
-  const seenUrls = new Set();
-  let page = 1;
-  let totalJobs = 0;
-  const MAX_PAGES = 10;
-
-  while (true) {
-    console.log(`Fetching API page: ${page}`);
-    const data = await fetchJobsPage(page);
-    const result = parseApiJobs(data);
-    const jobs = result.jobs;
-
-    if (!jobs.length) {
-      console.log(`No jobs found on page ${page}, stopping.`);
-      break;
+    const locations = [];
+    const locationRegex = /<location>([\s\S]*?)<\/location>/g;
+    let locMatch;
+    while ((locMatch = locationRegex.exec(item)) !== null) {
+      const locXml = locMatch[1];
+      const city = extractTag(locXml, 'city');
+      const country = extractTag(locXml, 'country');
+      locations.push({ city, country });
     }
 
-    if (page === 1) {
-      totalJobs = result.total;
-      console.log(`Total jobs on site: ${totalJobs}`);
-    }
+    const roLocations = locations
+      .filter(l => l.country && l.country.toLowerCase() === 'romania')
+      .map(l => l.city);
 
-    let newJobs = 0;
-    for (const job of jobs) {
-      if (!seenUrls.has(job.url)) {
-        seenUrls.add(job.url);
-        allJobs.push(job);
-        newJobs++;
-      }
-    }
-    console.log(`Page ${page}: ${jobs.length} jobs, ${newJobs} new (total: ${allJobs.length})`);
+    if (roLocations.length === 0 && !item.toLowerCase().includes('romania')) continue;
 
-    if (testOnlyOnePage) {
-      console.log("Test mode: stopping after page 1.");
-      break;
-    }
+    const citySet = new Set(roLocations.flatMap(c => c.split(',').map(s => s.trim())));
 
-    if (page >= MAX_PAGES) {
-      console.log(`Max pages (${MAX_PAGES}) reached, stopping.`);
-      break;
-    }
+    let workmode = "on-site";
+    if (remoteStatus === 'fully') workmode = "remote";
+    else if (remoteStatus === 'hybrid') workmode = "hybrid";
 
-    if (newJobs === 0) {
-      console.log(`No new jobs on page ${page}, stopping.`);
-      break;
-    }
+    const tags = [];
+    if (department) tags.push(department.toLowerCase().replace(/\s+/g, '-'));
 
-    page += 1;
-    await sleep(1000);
+    const url = link || `https://careers.lateralgroup.com/jobs/${guid}`;
+
+    jobs.push({
+      url,
+      title,
+      uid: guid,
+      workmode,
+      location: [...citySet].filter(Boolean),
+      tags
+    });
   }
 
-  console.log(`Total unique jobs collected: ${allJobs.length}`);
-  return allJobs;
+  return jobs;
+}
+
+async function fetchRSSFeed() {
+  let lastError;
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const res = await fetch(RSS_URL, {
+        method: "GET",
+        headers: { "User-Agent": "job_seeker_ro_spider", "Accept": "application/rss+xml, application/xml, text/xml" },
+        signal: AbortSignal.timeout(TIMEOUT)
+      });
+
+      if (!res.ok) {
+        lastError = new Error(`RSS feed error: ${res.status} ${res.statusText}`);
+        console.log(`RSS attempt ${attempt}/${MAX_RETRIES} failed: ${res.status}, retrying...`);
+        if (attempt < MAX_RETRIES) await sleep(RETRY_DELAY_MS);
+        continue;
+      }
+
+      return await res.text();
+    } catch (err) {
+      lastError = err;
+      console.log(`RSS attempt ${attempt}/${MAX_RETRIES} error: ${err.message}, retrying...`);
+      if (attempt < MAX_RETRIES) await sleep(RETRY_DELAY_MS);
+    }
+  }
+
+  throw lastError || new Error("RSS feed failed after retries");
+}
+
+async function scrapeAllListings() {
+  const xmlText = await fetchRSSFeed();
+  return parseRSSJobs(xmlText);
 }
 
 function mapToJobModel(rawJob, cif, companyName = COMPANY_NAME) {
@@ -277,9 +263,9 @@ async function main() {
       console.log(`Note: Could not upsert company: ${err.message}`);
     }
 
-    const rawJobs = await scrapeAllListings(testOnlyOnePage);
+    const rawJobs = await scrapeAllListings();
     const scrapedCount = rawJobs.length;
-    console.log(`Jobs scraped from EPAM Careers website: ${scrapedCount}`);
+    console.log(`Jobs scraped from Lateral Group careers RSS feed: ${scrapedCount}`);
 
     if (!testOnlyOnePage) {
       const anofmJobs = await searchANOFM(cif);
@@ -295,7 +281,7 @@ async function main() {
     const jobs = rawJobs.map(job => mapToJobModel(job, cif));
 
     const payload = {
-      source: "epam.com",
+      source: "lateralgroup.com",
       scrapedAt: new Date().toISOString(),
       company: COMPANY_NAME,
       cif: cif,
@@ -357,7 +343,7 @@ async function main() {
     const finalResult = await querySOLR(COMPANY_CIF);
     console.log(`\n=== SUMMARY ===`);
     console.log(`Jobs existing in SOLR before scrape: ${existingCount}`);
-    console.log(`Jobs scraped from EPAM website: ${scrapedCount}`);
+    console.log(`Jobs scraped from Lateral Group careers RSS feed: ${scrapedCount}`);
     console.log(`Stale jobs attempted: ${staleUrls.length}`);
     console.log(`Jobs in SOLR after scrape: ${finalResult.numFound}`);
     console.log(`====================`);
@@ -371,7 +357,7 @@ async function main() {
   }
 }
 
-export { parseApiJobs, mapToJobModel, transformJobsForSOLR };
+export { parseRSSJobs, mapToJobModel, transformJobsForSOLR };
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main();

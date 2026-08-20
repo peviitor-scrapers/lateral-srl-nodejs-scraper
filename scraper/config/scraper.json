@@ -1,4 +1,3 @@
 {
-  "apiBase": "https://careers.epam.com",
-  "apiCountryId": "8150000000000001155"
+  "rssUrl": "https://careers.lateralgroup.com/jobs.rss"
 }

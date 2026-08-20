@@ -2,9 +2,9 @@
 
 ## Project Purpose
 
-This scraper extracts job listings from EPAM Careers Romania API and imports them to peviitor.ro.
+This scraper extracts job listings from the Lateral Group careers RSS feed and imports them to peviitor.ro.
 
-Target: https://careers.epam.com
+Target: https://careers.lateralgroup.com (RSS feed: `/jobs.rss`)
 
 ## Model Schemas
 
@@ -43,14 +43,14 @@ When working on this scraper:
 
 ## Workflow Steps
 
-1. **Start with brand** - We know the brand ("EPAM")
+1. **Start with brand** - We know the brand ("Lateral Group")
 2. **Search in DemoANAF** - Find company by brand, get CIF from search results
 3. **Get company details from ANAF** - Using CIF, fetch full company data from ANAF
 4. **Validate with Peviitor** - Verify company exists in Peviitor, get group/brand info
 5. **Check existing jobs** - Query Peviitor API by CIF to see what jobs already exist
 6. **Check company status** - If ANAF status = "inactive" → DELETE existing jobs and STOP
 7. **Save company.json** - Save all ANAF + Peviitor data for backup
-8. **Scrape new jobs** - Extract jobs from EPAM Careers API (Romania)
+8. **Scrape new jobs** - Fetch and parse the Lateral Group careers RSS feed (Romania only)
 9. **Transform for API** - Validate and fix job data:
    - location: Only Romanian cities allowed
    - tags: lowercase, no diacritics
@@ -65,7 +65,7 @@ When working on this scraper:
 node scraper/index.js
 ```
 
-> **Important**: Scraper does NOT delete jobs from other sources (ANOFM, etc). It only upserts EPAM Careers jobs. Existing jobs are preserved.
+> **Important**: Scraper does NOT delete jobs from other sources (ANOFM, etc). It only upserts Lateral Group careers jobs. Existing jobs are preserved.
 
 ## Full Workflow (automatic)
 
@@ -73,7 +73,7 @@ When running `node scraper/index.js`, the following steps happen automatically:
 
 1. **Check existing jobs count** - Query Peviitor API by CIF (read-only)
 2. **Validate company via ANAF** - Check company exists and is active
-3. **Scrape jobs** - Extract jobs from EPAM Careers API (Romania only)
+3. **Scrape jobs** - Fetch and parse the careers RSS feed (Romania only)
 4. **Transform for API** - Fix locations (only Romanian cities), normalize fields
 5. **Upsert to API** - Add/update jobs (API handles duplicates by URL)
 6. **Delete stale jobs** - Remove jobs in API but no longer on the website
@@ -100,7 +100,7 @@ company.js (validate company)
     └── SOLR ──► check existing jobs count
     │
     ▼ (if active)
-scrape EPAM API (jobs for Romania)
+fetch + parse RSS feed (careers.lateralgroup.com/jobs.rss)
     │
     ▼
 transformJobsForSOLR()
@@ -120,9 +120,10 @@ generateJobsMarkdown() → docs/jobs.md
 
 | File | Role |
 |------|------|
-| `scraper/config/company.json` | **Single source of truth** for company identity (CIF, brand, URLs, API params) |
+| `scraper/config/company.json` | **Single source of truth** for company identity (CIF, brand, URLs) |
 | `scraper/config/company.js` | ESM wrapper that loads `scraper/config/company.json` for Node code |
-| `scraper/index.js` | Main entry point - full workflow: validate company → scrape → transform → upsert → delete stale → generate docs/jobs.md |
+| `scraper/config/scraper.json` | Scraper-specific target config (RSS feed URL) |
+| `scraper/index.js` | Main entry point - full workflow: validate company → scrape RSS → transform → upsert → delete stale → generate docs/jobs.md |
 | `scraper/company.js` | Validates company via ANAF + CUIScan + Peviitor; caches in `tmp/company.json` (7-day TTL) |
 | `scraper/anaf.js` | Multi-source company data module - ANAF + CUIScan (company details) + CUIFirma (search) |
 | `scraper/demoanaf.js` | CLI entry point for anaf.js (thin wrapper) |
@@ -130,7 +131,7 @@ generateJobsMarkdown() → docs/jobs.md
 | `scraper/validate-jobs.js` | Manual deep validator (content-aware); thin CLI wrapper over `scraper/job-validator.js` |
 | `scraper/job-validator.js` | Shared validation primitives: `validateByHead`, `validateByContent`, `DEFAULT_EXPIRED_KEYWORDS` |
 | `scraper/markdown-generator.js` | Generates `docs/jobs.md` with company info and all scraped jobs |
-| `tests/unit/index.test.js` | Unit tests for parseApiJobs, mapToJobModel, transformJobsForSOLR |
+| `tests/unit/index.test.js` | Unit tests for parseRSSJobs, mapToJobModel, transformJobsForSOLR |
 | `tests/unit/company.test.js` | Unit tests for validateAndGetCompany and fallback caching |
 | `tests/unit/api.test.js` | Unit tests for api.js - query, upsert, delete, HTTP error handling |
 | `tests/unit/demoanaf.test.js` | Unit tests for anaf.js - ANAF search and company retrieval |
@@ -148,7 +149,7 @@ generateJobsMarkdown() → docs/jobs.md
 - **CUIScan**: `https://cuiscan.ro/api.php?action=company&cui=CIF` - Company details fallback
 - **CUIFirma Search**: `https://cuifirma.ro/api/search?q=BRAND` - Search fallback
 - **Peviitor API**: `https://api.peviitor.ro/v1/` — all job and company operations go through this API
-- **EPAM Careers API**: `https://careers.epam.com/api/jobs/v2/search/careers-i18n` — GET with query params (country, page, size)
+- **Lateral Group Careers RSS**: `https://careers.lateralgroup.com/jobs.rss` — GET, no auth, no pagination
 
 ## Rate Limiting & Politeness
 
@@ -156,11 +157,10 @@ The scraper is intentionally slow to be a good citizen:
 
 | Setting | Value | Where |
 |---------|-------|-------|
-| Request timeout | 10000 ms | `scraper/anaf.js` — `TIMEOUT_MS` constant |
+| Request timeout | 10000 ms | `scraper/anaf.js`, `scraper/index.js` — `TIMEOUT`/`TIMEOUT_MS` constants |
 | ANAF fallback | 1 attempt ANAF → CUIScan | `scraper/anaf.js` — no retries, just fallback |
-| Concurrency | 1 (sequential) | No `Promise.all` for paginated fetches |
+| RSS fetch | 1 request, up to 3 retries with 2s delay on failure | `scraper/index.js` — `fetchRSSFeed()` |
 | User-Agent | `job_seeker_ro_spider` | Identifies the scraper in server logs |
-| Page delay | 1000 ms between pages | `scraper/index.js` — `sleep(1000)` |
 
 Derived scrapers should keep these defaults unless the target site explicitly permits otherwise.
 
@@ -217,11 +217,3 @@ npm test
 ## Temporary Files
 
 All temporary/scratch files must be placed in `tmp/` inside the project root (never outside the project). The `tmp/` directory is in `.gitignore` and will not be committed.
-
-## Technical Debt / Completed
-
-- [x] Extract demoanaf.js to separate module (#2)
-- [x] Write Unit Tests for all modules (#3)
-- [x] Write Integration Tests in separate folder (#4)
-- [x] Write E2E automated tests in separate folder (#5)
-- [ ] Write Unit/Component/E2E tests for index.js
