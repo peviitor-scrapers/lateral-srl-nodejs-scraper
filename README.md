@@ -36,7 +36,7 @@ Proiectul automatizează colectarea zilnică a job-urilor Lateral Group din Rom�
 
 ## License
 
-Copyright (c) 2024-2026 BOGA SEBASTIAN-NICOLAE
+Copyright (c) 2024-2026 CRISTIAN ALEXUTAN
 
 Licensed under the [MIT License](LICENSE).
 
