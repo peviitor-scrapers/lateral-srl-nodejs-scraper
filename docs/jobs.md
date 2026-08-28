@@ -10,11 +10,11 @@
 | Location | JUD. MUREŞ, MUN. TÂRGU MUREŞ, STR. FRUNZEI, NR.4A |
 | Website | [https://lateralgroup.com](https://lateralgroup.com) |
 | Careers | [https://careers.lateralgroup.com](https://careers.lateralgroup.com) |
-| Last Scraped | 2026-08-27 |
+| Last Scraped | 2026-08-28 |
 
-## Current Job Listings (6)
+## Current Job Listings (7)
 
-_Generated: 2026-08-27T17:32:07.018Z_
+_Generated: 2026-08-28T18:28:22.554Z_
 
 ### Senior .NET / Blazor Engineer (Romania)
 
@@ -38,6 +38,13 @@ _Generated: 2026-08-27T17:32:07.018Z_
 - **Work Mode:** hybrid
 - **Location:** Brașov, Cluj-Napoca, Oradea, Târgu Mureș, Bucharest
 - **Tags:** backend-engineering
+- **Status:** scraped
+
+### Senior Full Stack Engineer (Python + React)
+
+- **URL:** [https://careers.lateralgroup.com/jobs/8283033-senior-full-stack-engineer-python-react](https://careers.lateralgroup.com/jobs/8283033-senior-full-stack-engineer-python-react)
+- **Work Mode:** hybrid
+- **Location:** Bucharest, Cluj-Napoca, Oradea, Târgu Mureș
 - **Status:** scraped
 
 ### Senior Machine Learning Engineer (Bucharest)
