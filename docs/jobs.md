@@ -10,11 +10,11 @@
 | Location | JUD. MUREŞ, MUN. TÂRGU MUREŞ, STR. FRUNZEI, NR.4A |
 | Website | [https://lateralgroup.com](https://lateralgroup.com) |
 | Careers | [https://careers.lateralgroup.com](https://careers.lateralgroup.com) |
-| Last Scraped | 2026-09-03 |
+| Last Scraped | 2026-09-04 |
 
 ## Current Job Listings (7)
 
-_Generated: 2026-09-03T11:00:22.664Z_
+_Generated: 2026-09-04T11:02:26.958Z_
 
 ### Senior .NET / Blazor Engineer (Romania)
 
