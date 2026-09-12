@@ -7,14 +7,14 @@
 | CIF | 23067611 |
 | Brand | Lateral Group |
 | Status | activ |
-| Location | JUD. MUREŞ, MUN. TÂRGU MUREŞ, STR. FRUNZEI, NR.4A |
+| Location | București |
 | Website | [https://lateralgroup.com](https://lateralgroup.com) |
 | Careers | [https://careers.lateralgroup.com](https://careers.lateralgroup.com) |
-| Last Scraped | 2026-09-11 |
+| Last Scraped | 2026-09-12 |
 
 ## Current Job Listings (7)
 
-_Generated: 2026-09-11T11:00:12.953Z_
+_Generated: 2026-09-12T10:29:09.415Z_
 
 ### Senior .NET / Blazor Engineer (Romania)
 
