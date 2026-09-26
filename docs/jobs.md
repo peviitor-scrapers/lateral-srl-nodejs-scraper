@@ -10,19 +10,11 @@
 | Location | JUD. MUREŞ, MUN. TÂRGU MUREŞ, STR. FRUNZEI, NR.4A |
 | Website | [https://lateralgroup.com](https://lateralgroup.com) |
 | Careers | [https://careers.lateralgroup.com](https://careers.lateralgroup.com) |
-| Last Scraped | 2026-09-25 |
+| Last Scraped | 2026-09-26 |
 
-## Current Job Listings (7)
+## Current Job Listings (6)
 
-_Generated: 2026-09-25T11:36:10.466Z_
-
-### Senior .NET / Blazor Engineer (Romania)
-
-- **URL:** [https://careers.lateralgroup.com/jobs/6758878-senior-net-blazor-engineer-romania](https://careers.lateralgroup.com/jobs/6758878-senior-net-blazor-engineer-romania)
-- **Work Mode:** hybrid
-- **Location:** Brașov, Cluj-Napoca, Oradea, Târgu Mureș, Bucharest
-- **Tags:** backend-engineering
-- **Status:** scraped
+_Generated: 2026-09-26T11:10:35.075Z_
 
 ### Senior Frontend Engineer (Romania)
 
