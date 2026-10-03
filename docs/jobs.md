@@ -7,14 +7,14 @@
 | CIF | 23067611 |
 | Brand | Lateral Group |
 | Status | activ |
-| Location | JUD. MUREŞ, MUN. TÂRGU MUREŞ, STR. FRUNZEI, NR.4A |
+| Location | București |
 | Website | [https://lateralgroup.com](https://lateralgroup.com) |
 | Careers | [https://careers.lateralgroup.com](https://careers.lateralgroup.com) |
-| Last Scraped | 2026-10-02 |
+| Last Scraped | 2026-10-03 |
 
 ## Current Job Listings (6)
 
-_Generated: 2026-10-02T12:17:10.343Z_
+_Generated: 2026-10-03T11:27:39.613Z_
 
 ### Senior Frontend Engineer (Romania)
 
