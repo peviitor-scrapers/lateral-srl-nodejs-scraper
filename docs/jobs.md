@@ -10,11 +10,11 @@
 | Location | JUD. MUREŞ, MUN. TÂRGU MUREŞ, STR. FRUNZEI, NR.4A |
 | Website | [https://lateralgroup.com](https://lateralgroup.com) |
 | Careers | [https://careers.lateralgroup.com](https://careers.lateralgroup.com) |
-| Last Scraped | 2026-10-16 |
+| Last Scraped | 2026-10-17 |
 
-## Current Job Listings (6)
+## Current Job Listings (7)
 
-_Generated: 2026-10-16T11:08:16.050Z_
+_Generated: 2026-10-17T10:27:35.955Z_
 
 ### Senior Frontend Engineer (Romania)
 
@@ -30,6 +30,13 @@ _Generated: 2026-10-16T11:08:16.050Z_
 - **Work Mode:** hybrid
 - **Location:** Brașov, Cluj-Napoca, Oradea, Târgu Mureș, Bucharest
 - **Tags:** backend-engineering
+- **Status:** scraped
+
+### Senior Data Engineer (Romania)
+
+- **URL:** [https://careers.lateralgroup.com/jobs/8559578-senior-data-engineer-romania](https://careers.lateralgroup.com/jobs/8559578-senior-data-engineer-romania)
+- **Work Mode:** hybrid
+- **Location:** Oradea
 - **Status:** scraped
 
 ### Senior Full Stack Engineer (Python + React)
