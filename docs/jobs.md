@@ -10,11 +10,11 @@
 | Location | JUD. MUREŞ, MUN. TÂRGU MUREŞ, STR. FRUNZEI, NR.4A |
 | Website | [https://lateralgroup.com](https://lateralgroup.com) |
 | Careers | [https://careers.lateralgroup.com](https://careers.lateralgroup.com) |
-| Last Scraped | 2026-11-08 |
+| Last Scraped | 2026-11-09 |
 
-## Current Job Listings (7)
+## Current Job Listings (8)
 
-_Generated: 2026-11-08T13:06:20.022Z_
+_Generated: 2026-11-09T15:50:51.177Z_
 
 ### Senior Frontend Engineer (Romania)
 
@@ -30,6 +30,13 @@ _Generated: 2026-11-08T13:06:20.022Z_
 - **Work Mode:** hybrid
 - **Location:** Brașov, Cluj-Napoca, Oradea, Târgu Mureș, Bucharest
 - **Tags:** backend-engineering
+- **Status:** scraped
+
+### Data Architect (Romania)
+
+- **URL:** [https://careers.lateralgroup.com/jobs/8691790-data-architect-romania](https://careers.lateralgroup.com/jobs/8691790-data-architect-romania)
+- **Work Mode:** hybrid
+- **Location:** Bucharest, Cluj-Napoca, Oradea, Târgu Mureș
 - **Status:** scraped
 
 ### Senior Data Engineer (Romania)
