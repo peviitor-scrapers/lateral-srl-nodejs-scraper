@@ -10,11 +10,11 @@
 | Location | JUD. MUREŞ, MUN. TÂRGU MUREŞ, STR. FRUNZEI, NR.4A |
 | Website | [https://lateralgroup.com](https://lateralgroup.com) |
 | Careers | [https://careers.lateralgroup.com](https://careers.lateralgroup.com) |
-| Last Scraped | 2026-11-20 |
+| Last Scraped | 2026-11-21 |
 
 ## Current Job Listings (7)
 
-_Generated: 2026-11-20T15:13:28.000Z_
+_Generated: 2026-11-21T14:28:46.279Z_
 
 ### Senior Frontend Engineer (Romania)
 
